@@ -1,5 +1,3 @@
-Similar analyses were conducted at https://github.com/RegnerM2015/scENDO_scOVAR_2020. 
-
 # scOVAR_SE_Screen
 1) Cell Ranger was run for the initial processing of the two samples (both scRNA-seq and scATAC-seq). Visit https://support.10xgenomics.com/single-cell-gene-expression/software/overview/welcome for more details on the CellRanger workflow.
 
@@ -17,6 +15,6 @@ Similar analyses were conducted at https://github.com/RegnerM2015/scENDO_scOVAR_
 3) Run FIMO_TF_rank.R to process the motif analysis results
 
 
-
+NOTE: Similar analyses were conducted at https://github.com/RegnerM2015/scENDO_scOVAR_2020. 
 
 
