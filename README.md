@@ -14,6 +14,12 @@
 2) Run Motif_Analysis_SE60_SE14.sh to perform the motif analysis
 3) Run FIMO_TF_rank.R to process the motif analysis results
 
+# Quality control histograms
+Run HGSOC_QC_Samples.R to generate histrograms of log2(nCount_RNA) in scRNA-seq and log2(unique fragments) in scATAC-seq
+
+# Overlap peaks called in the malignant fraction with Super Enhancer (SE) regions
+1) Run HGSOC_SE_Overlap. R to generate a bed file of peaks called in the malignant fraction (subset to clusters: "0-Epithelial cell","2-Epithelial cell","3-Epithelial cell","7-Epithelial cell","11-Epithelial cell",and "16-Epithelial cell")
+2) Run Intersect_SE_regions.sh to find SE regions that overlap with peaks called in the malignant fraction
 
 NOTE: Similar analyses were conducted at https://github.com/RegnerM2015/scENDO_scOVAR_2020. 
 
