@@ -22,21 +22,24 @@ rna <- readRDS("./ovar_HGSOC_scRNA_processed.rds")
 
 rna.df <- rna@meta.data
 
-ggplot(rna.df, aes(x=log2(nCount_RNA))) +
-  geom_histogram(binwidth=0.5,color="black", fill="gray75")+
+p1 <- ggplot(rna.df, aes(x=log2(nCount_RNA))) + 
+  geom_histogram(binwidth=0.1,color="gray20", fill="gray75")+
   theme_bw()+
   geom_vline(xintercept = log2(500),linetype="dashed",col="darkred")+
-  geom_vline(xintercept = log2(median(rna.df$nCount_RNA)),linetype="dashed",col="black")
-ggsave("HGSOC_scRNA_QC_Histogram.pdf",width = 6,height = 4)
+  geom_vline(xintercept = log2(median(rna.df$nCount_RNA)),linetype="dashed",col="black")+
+  scale_y_continuous(limits=c(0,500))
 
 # Read in scATAC data (processed)
 atac <- readRDS("./final_archr_proj_archrGS.rds")
 
 atac.df <- as.data.frame(atac@cellColData)
 
-ggplot(atac.df, aes(x=log2(nFrags))) +
-  geom_histogram(binwidth=0.5,color="black", fill="gray75")+
+p2 <- ggplot(atac.df, aes(x=log2(nFrags))) + 
+  geom_histogram(binwidth=0.1,color="gray20", fill="gray75")+
   theme_bw()+
   geom_vline(xintercept = log2(1000),linetype="dashed",col="darkred")+
-  geom_vline(xintercept = log2(median(atac.df$nFrags)),linetype="dashed",col="black")
-ggsave("HGSOC_scATAC_QC_Histogram.pdf",width = 6,height = 4)
+  geom_vline(xintercept = log2(median(atac.df$nFrags)),linetype="dashed",col="black")+
+  scale_y_continuous(limits=c(0,500))
+
+p1+p2
+ggsave("HGSOC_scRNA_scATAC_QC_Histograms.pdf",width = 7,height = 4)
