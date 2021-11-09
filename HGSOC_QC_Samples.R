@@ -23,7 +23,7 @@ rna <- readRDS("./ovar_HGSOC_scRNA_processed.rds")
 rna.df <- rna@meta.data
 
 ggplot(rna.df, aes(x=log2(nCount_RNA))) +
-  geom_histogram(binwidth=0.1,color="black", fill="gray75")+
+  geom_histogram(binwidth=0.5,color="black", fill="gray75")+
   theme_bw()+
   geom_vline(xintercept = log2(500),linetype="dashed",col="darkred")+
   geom_vline(xintercept = log2(median(rna.df$nCount_RNA)),linetype="dashed",col="black")
@@ -35,7 +35,7 @@ atac <- readRDS("./final_archr_proj_archrGS.rds")
 atac.df <- as.data.frame(atac@cellColData)
 
 ggplot(atac.df, aes(x=log2(nFrags))) +
-  geom_histogram(binwidth=0.1,color="black", fill="gray75")+
+  geom_histogram(binwidth=0.5,color="black", fill="gray75")+
   theme_bw()+
   geom_vline(xintercept = log2(1000),linetype="dashed",col="darkred")+
   geom_vline(xintercept = log2(median(atac.df$nFrags)),linetype="dashed",col="black")
