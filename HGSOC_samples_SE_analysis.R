@@ -63,7 +63,7 @@ p9.5 <- VlnPlot(rna,features = "PMEPA1",pt.size = F)+NoLegend()+coord_flip()
 p10.5 <- VlnPlot(rna,features = "RELN",pt.size = F)+NoLegend()+coord_flip()
 p11.5 <- VlnPlot(rna,features = "ROS1",pt.size = F)+NoLegend()+coord_flip()
 p12.5 <- VlnPlot(rna,features = "SMAD6",pt.size = F)+NoLegend()+coord_flip()
-
+kruskal.test(p12.5$data$SMAD6 ~ p12.5$data$ident)# Test for signficance 
 FeaturePlot(rna,features = "MUC16",cols = c("ivory3","blue"),max.cutoff = 1)+ggsave("Markers-CA125.pdf",width =6,height = 4)
 CombinePlots(list(p4,p5,p6,p7,p8,p9,p10,p11,p12),ncol = 2)+ggsave("Markers-feats.pdf",width = 3.5,height = 7.5)
 
@@ -72,18 +72,24 @@ CombinePlots(list(p4,p5,p6,p7,p8,p9,p10,p11,p12),ncol = 2)+ggsave("Markers-feats
 
 source("stacked_violin.R")
 Idents(rna) <- "seurat_clusters"
-my_levels <- c("2","3","0","7","11","15","16","19",
-                   "1","4","9","10","22",
+remove <- c("15","20","19","23","22")
+rna.sub <- subset(x = rna, idents =setdiff(unique(rna$seurat_clusters),remove))
+my_levels <- c("2","3","0","7","11","16",
+                   "1","4","9","10",
                    "14",
-                   "6","8","13","20","23",
+                   "6","8","13",
                    "5","18","21","12",
                    "17")
 
 # Relevel object@ident
-rna@active.ident <- factor(x =rna@active.ident, levels = my_levels)
-StackedVlnPlot(rna,features = c("MUC16","GJB3","IL18","LAMB3","SERPINB8","PMEPA1"))+ggsave("Stacked_Violin_SE60.pdf",width = 8,height = 16)
-StackedVlnPlot(rna,features = c("MUC16","SMAD6"))+ggsave("Stacked_Violin_SE14.pdf",width = 8,height =5)
-VlnPlot(rna,features = "MUC16")+ggsave("VLN_row_labels.pdf")
+rna.sub@active.ident <- factor(x =rna.sub@active.ident, levels = my_levels)
+# StackedVlnPlot(rna.sub,features = c("MUC16","GJB3","IL18","LAMB3","SERPINB8","PMEPA1"))+ggsave("Stacked_Violin_SE60.pdf",width = 8,height = 16)
+# StackedVlnPlot(rna.sub,features = c("MUC16","SMAD6"))+ggsave("Stacked_Violin_SE14.pdf",width = 8,height =5)
+VlnPlot(rna.sub,features = "MUC16")
+ggsave("VLN_row_labels.pdf")
+StackedVlnPlot(rna.sub,features = c("MUC16","RAE1","EPHA2"))
+ggsave("Stacked_Violin_SE60_SE14_combined.pdf",width = 9,height = 8)
+
 ##########################
 # Plot RNA and ATAC UMAPs
 ##########################
@@ -477,3 +483,44 @@ df %>%
   geom_bar(position="fill", stat="identity")+
   coord_flip()+theme_classic()+xlab("Clusters")+ylab("# of cells")+
   scale_fill_manual(values = sampleColors)+ggsave("Cell_Type_Prop_ATAC.pdf",width = 4,height = 8)
+
+
+
+
+
+proj <- readRDS("final_archr_proj_archrGS.rds")
+
+markersPeaks <- getMarkerFeatures(
+  ArchRProj = proj, 
+  useMatrix = "PeakMatrix", 
+  groupBy = "predictedGroup_ArchR",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  testMethod = "wilcoxon"
+)
+
+
+
+enh1 <- "chr20:53735447-53735947"
+enh2 <- "chr20:53738386-53738886"
+enh3 <- "chr20:53748112-53748612"
+se60 <- c(enh1,enh2,enh3)
+markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 1")# se60 markers
+markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 0.5")# se14 markers
+epi.0<- as.data.frame(markerList$`0-Epithelial cell`)
+epi.0$name <- paste0(epi.0$seqnames,":",epi.0$start,"-",epi.0$end)
+epi.0 <- epi.0[epi.0$name %in% se60,]
+
+
+epi.2 <- as.data.frame(markerList$`2-Epithelial cell`)
+epi.2$name <- paste0(epi.2$seqnames,":",epi.2$start,"-",epi.2$end)
+epi.2 <- epi.2[epi.2$name %in% se60,]
+
+
+epi.3 <- as.data.frame(markerList$`3-Epithelial cell`)
+epi.3 <- as.data.frame(markerList$`3-Epithelial cell`)
+epi.3$name <- paste0(epi.3$seqnames,":",epi.3$start,"-",epi.3$end)
+epi.3 <- epi.3[epi.3$name %in% se60,]
+
+epi.7 <- as.data.frame(markerList$`7-Epithelial cell`)
+epi.11 <- as.data.frame(markerList$`11-Epithelial cell`)
+epi.16 <- as.data.frame(markerList$`16-Epithelial cell`)
