@@ -10,8 +10,8 @@ modify_vlnplot<- function(obj,
                           pt.size = 0, 
                           plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"),
                           ...) {
-  p<- VlnPlot(obj, features = feature, pt.size = pt.size, ... )  + 
-    xlab("") + ylab(feature) + ggtitle("") + 
+  p<- VlnPlot(obj, features = feature, pt.size = pt.size,y.max=3.5, ... )  + 
+    xlab("") + ylab(feature) + ggtitle("") 
     theme(legend.position = "none", 
           axis.text.x = element_text(angle = 90), 
           axis.ticks.x = element_blank(), 
