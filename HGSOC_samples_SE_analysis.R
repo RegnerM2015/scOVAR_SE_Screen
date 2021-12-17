@@ -351,17 +351,17 @@ atac$Cancer.Group <- ifelse(atac$predictedGroup_ArchR %in% c("0-Epithelial cell"
                                                              "3-Epithelial cell","7-Epithelial cell",
                                                              "11-Epithelial cell","16-Epithelial cell"),"Cancer","Normal")
 set.seed(1234)
-atac <- addGroupCoverages(ArchRatac = atac, groupBy = "predictedGroup_ArchR",force=T)
+atac <- addGroupCoverages(ArchRProj = atac, groupBy = "predictedGroup_ArchR",force=T)
 
 atac <- addReproduciblePeakSet(
-ArchRatac = atac,
+ArchRProj = atac,
     groupBy = "predictedGroup_ArchR",
     pathToMacs2 = pathToMacs2,force = T
  )
 atac <- addPeakMatrix(atac,force = T)
 
 markersPeaks <- getMarkerFeatures(
-  ArchRatac = atac,
+  ArchRProj = atac,
   useMatrix = "PeakMatrix",
   groupBy = "Cancer.Group",
   useGroups = "Cancer",
