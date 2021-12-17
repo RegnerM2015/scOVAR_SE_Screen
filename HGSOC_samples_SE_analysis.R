@@ -1,6 +1,6 @@
 ########################
 # Matt Regner
-# March 2021
+# March-December 2021
 # Super Enhancer Figure
 ########################
 
@@ -15,8 +15,10 @@
 library(Seurat)
 library(ArchR)
 library(ggplot2)
-
-
+library(stringr)
+library(dplyr)
+library(forcats)
+set.seed(1234)
 # Read in color pals:
 cols.df <- read.table("Color_Pals.tsv",sep = "\t")
 
@@ -72,7 +74,7 @@ CombinePlots(list(p4,p5,p6,p7,p8,p9,p10,p11,p12),ncol = 2)+ggsave("Markers-feats
 
 source("stacked_violin.R")
 Idents(rna) <- "seurat_clusters"
-remove <- c("15","20","19","23","22")
+remove <- c("15","20","19","23","22")#Clusters that did not transfer to ATAC
 rna.sub <- subset(x = rna, idents =setdiff(unique(rna$seurat_clusters),remove))
 my_levels <- c("2","3","0","7","11","16",
                    "1","4","9","10",
@@ -85,11 +87,33 @@ my_levels <- c("2","3","0","7","11","16",
 rna.sub@active.ident <- factor(x =rna.sub@active.ident, levels = my_levels)
 # StackedVlnPlot(rna.sub,features = c("MUC16","GJB3","IL18","LAMB3","SERPINB8","PMEPA1"))+ggsave("Stacked_Violin_SE60.pdf",width = 8,height = 16)
 # StackedVlnPlot(rna.sub,features = c("MUC16","SMAD6"))+ggsave("Stacked_Violin_SE14.pdf",width = 8,height =5)
-VlnPlot(rna.sub,features = "MUC16")
-ggsave("VLN_row_labels.pdf")
-StackedVlnPlot(rna.sub,features = c("MUC16","RAE1","EPHA2"))
-ggsave("Stacked_Violin_SE60_SE14_combined.pdf",width = 9,height = 8)
+VlnPlot(rna.sub,features = "MUC16")+ggsave("VLN_row_labels.pdf")
+StackedVlnPlot(rna.sub,features = c("MUC16","RAE1","EPHA2"))+ggsave("Stacked_Violin_SE60_SE14_combined.pdf",width = 9,height = 8)
 
+# FindMarkers from Seurat
+markers <- FindMarkers(rna.sub,ident.1=c(2,3,0,7,11,16),
+                       ident.2=c(1, 4, 9, 10, 14, 6, 8, 13, 5, 18, 21, 12, 17),
+                       only.pos = T,
+                       logfc.threshold = 0)
+markers$gene <- rownames(markers)
+
+muc16.test <- VlnPlot(rna.sub,features = "MUC16")
+res <- kruskal.test(data=muc16.test$data,MUC16 ~ ident)
+print(res)
+print(res$p.value)
+head(markers[markers$gene == "MUC16",])
+
+rae1.test <- VlnPlot(rna.sub,features = "RAE1")
+res <- kruskal.test(data=rae1.test$data,RAE1 ~ ident)
+print(res)
+print(res$p.value)
+head(markers[markers$gene == "RAE1",])
+
+epha2.test <- VlnPlot(rna.sub,features = "EPHA2")
+res <- kruskal.test(data=epha2.test$data,EPHA2 ~ ident)
+print(res)
+print(res$p.value)
+head(markers[markers$gene == "EPHA2",])
 ##########################
 # Plot RNA and ATAC UMAPs
 ##########################
@@ -258,19 +282,54 @@ p <- plotBrowserTrack(
   downstream = 0
 )
 
-
 dev.off()
-pdf("browser_SE60.pdf",width = 8,height = 14)
+pdf("browser_SE60-Extend.pdf",width = 8,height = 14)
 grid::grid.draw(p)
 dev.off()
 
-chr1:16167176-16190191
-chr1:16162176-16195191
-chr1:16167176-16190191
 p <- plotBrowserTrack(
   ArchRProj = atac, 
   groupBy = "predictedGroup_ArchR", 
-  region = GRanges("chr1:16167176-16190191
+  region = GRanges("chr20:53735512-53752381"),
+  features = GRangesList(TrackA = makeGRangesFromDataFrame(encode),
+                         TrackB = makeGRangesFromDataFrame(encode.distal),
+                         TrackC = makeGRangesFromDataFrame(encode.epi),
+                         TrackD = makeGRangesFromDataFrame(common.snps)),
+  loops = NULL,
+  upstream = 0,
+  downstream = 0
+)
+
+dev.off()
+pdf("browser_SE60-Exact.pdf",width = 8,height = 14)
+grid::grid.draw(p)
+dev.off()
+
+
+p <- plotBrowserTrack(
+  ArchRProj = atac, 
+  groupBy = "predictedGroup_ArchR", 
+  region = GRanges("chr1:16167176-16190191"),
+  loops = NULL,
+  features = GRangesList(TrackA = makeGRangesFromDataFrame(encode),
+                         TrackB = makeGRangesFromDataFrame(encode.distal),
+                         TrackC = makeGRangesFromDataFrame(encode.epi),
+                         TrackD = makeGRangesFromDataFrame(common.snps)),
+  upstream = 0,
+  downstream = 0
+)
+
+
+dev.off()
+pdf("browser_SE14-Exact.pdf",width = 8,height = 14)
+grid::grid.draw(p)
+dev.off()
+
+
+p <- plotBrowserTrack(
+  ArchRProj = atac, 
+  groupBy = "predictedGroup_ArchR", 
+  region = GRanges("chr1:16162176-16195191
 "),
   loops = NULL,
   features = GRangesList(TrackA = makeGRangesFromDataFrame(encode),
@@ -283,244 +342,118 @@ p <- plotBrowserTrack(
 
 
 dev.off()
-pdf("browser_SE14.pdf",width = 8,height = 14)
+pdf("browser_SE14-Extend.pdf",width = 8,height = 14)
 grid::grid.draw(p)
 dev.off()
 
+# Find differentially accessible (cancer-enriched peaks)
+atac$Cancer.Group <- ifelse(atac$predictedGroup_ArchR %in% c("0-Epithelial cell","2-Epithelial cell",
+                                                             "3-Epithelial cell","7-Epithelial cell",
+                                                             "11-Epithelial cell","16-Epithelial cell"),"Cancer","Normal")
+set.seed(1234)
+atac <- addGroupCoverages(ArchRatac = atac, groupBy = "predictedGroup_ArchR",force=T)
 
-
-
-
-
-###########################
-# Save peak-to-gene links
-###########################
-atac <- readRDS("./final_archr_proj_archrGS.rds")
-
-# Read in all P2G peaks 
-p2g <- plotPeak2GeneHeatmap(atac,corCutOff = 0,
-                                   FDRCutOff = 1,
-                                   groupBy = "predictedGroup_ArchR",
-                                   returnMatrices = T,nPlot = 5000000)# Make Heatmap object with ALL P2Gs!
-
-mat <- p2g$RNA$matrix
-colnames(mat) <- make.unique(p2g$RNA$colData$groupBy)
-rownames(mat) <- make.unique(p2g$Peak2GeneLinks$gene)
-
-
-peaks.genes <- p2g$Peak2GeneLinks
-
-  
-peaks.genes <- as.data.frame(peaks.genes)
-
-saveRDS(peaks.genes,"All_P2G_Hits_FDR_of_1.rds")
-
-
-# SE60 chr20:53735512-53752381
-idx <- grep("chr20:537",peaks.genes$peak)
-peaks.genes.se60 <- peaks.genes[idx,]
-peaks.genes.se60 <- dplyr::filter(peaks.genes.se60,FDR < 0.01)
-write.table(peaks.genes.se60,"SE60_linked_genes_BH_FDR_0.01.tsv",sep = "\t",row.names = F,col.names = T,quote = F)
-
-# SE14 chr1:16167176-16190191
-idx <- grep("chr1:161",peaks.genes$peak)
-peaks.genes.se14 <- peaks.genes[idx,]
-peaks.genes.se14 <- dplyr::filter(peaks.genes.se14,FDR < 0.01)
-write.table(peaks.genes.se14,"SE14_linked_genes_BH_FDR_0.01.tsv",sep = "\t",row.names = F,col.names = T,quote = F)
-
-
-enh1 <- data.frame(V1="chr20",V2="53735447",V3="53735947")
-write.table(enh1,"enhancer_1_SE60.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-enh2 <- data.frame(V1="chr20",V2="53738386",V3="53738886")
-write.table(enh2,"enhancer_2_SE60.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-enh3 <- data.frame(V1="chr20",V2="53748112",V3="53748612")
-write.table(enh3,"enhancer_3_SE60.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-
-
-
-enh1 <- data.frame(V1="chr1",V2="16168532",V3="16169032")
-write.table(enh1,"enhancer_1_SE14.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-enh2 <- data.frame(V1="chr1",V2="16173395",V3="16173895")
-write.table(enh2,"enhancer_2_SE14.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-enh3 <- data.frame(V1="chr1",V2="16188915",V3="16189415")
-write.table(enh3,"enhancer_3_SE14.bed",row.names = F,col.names = F,quote = F,sep = "\t")
-
-#######################
-# GSVA analysis 
-#######################
-source("./stacked_violin.R")
-library(ggplot2)
-library(Seurat)
-library(scales)
-library(forcats)
-library(stringr)
-library(ComplexHeatmap)
-
-
-# Read in gene sets and store in gmt format:
-files <- list.files(pattern = ".txt")
-
-names <- str_remove(files,".txt")
-
-desired_length <- 14 # or whatever length you want
-filler <- vector(mode = "list", length = desired_length)
-names(filler) <- names
-for (i in names(filler)){
-  genes <- read.delim(paste0(i,".txt"),header = T)
-  
-  genes.vector <- genes$GeneName
-  
-  filler[[i]] <- genes.vector
-  
-}
-
-gset <- filler
-# Set labels of cell types of interest
-
-
-# Pseudobulk RNA expression
-rna <- readRDS("./ovar_HGSOC_scRNA_processed.rds")
-
-# FeaturePlot(rna,features = "Total_CNVs")+ggsave("CNV.pdf")
-# VlnPlot(rna,features = "Total_CNVs")+coord_flip()+ggsave("VLN_CNV.pdf",width = 8,height = 12)
-
-
-rna.counts <- rna@assays$RNA@counts
-
-rna.pseudobulk <- data.frame(rownames(rna))
-for (i in levels(factor(rna$cell.type))){
-  cells <- rownames(dplyr::filter(rna@meta.data,cell.type == i))
-  
-  rna.counts.sub <- rna.counts[,colnames(rna.counts) %in% cells]
-  
-  rna.counts.bulk <- rowSums(as.matrix(rna.counts.sub))
-  
-  rna.pseudobulk$i <- rna.counts.bulk
-  colnames(rna.pseudobulk)[dim(rna.pseudobulk)[2]] <- i
-  
-}
-rownames(rna.pseudobulk) <- rna.pseudobulk[,1]
-rna.pseudobulk <- rna.pseudobulk[,-1]
-dim(rna.pseudobulk)
-
-
-res <- GSVA::gsva(as.matrix(rna.pseudobulk),gset.idx.list = gset,method = "gsva",kcdf = "Poisson")
-head(res)
-
-pdf("GSVA_Heatmap_raw_poisson.pdf",width = 6,height = 8)
-# Make heatmap annotation
-Heatmap(scale(res),cluster_rows = T)
-dev.off()
-
-
-
-# Rlog transform raw counts
-library(DESeq2)
-dds <- DESeqDataSetFromMatrix(countData = rna.pseudobulk,
-                              colData = data.frame(meta=colnames(rna.pseudobulk)),design = ~ 1)
-
-dds <- estimateSizeFactors(dds)
-sizeFactors(dds)
-
-rlog.rna <- rlog(dds,blind = T)
-dat <- as.matrix(assay(rlog.rna))
-
-
-res <- GSVA::gsva(dat,gset.idx.list = gset,method = "gsva",kcdf = "Gaussian")
-head(res)
-
-pdf("GSVA_Heatmap_Rlog_gaussian.pdf",width = 6,height =10)
-# Make heatmap annotation
-Heatmap(scale(res),cluster_rows = T)
-dev.off()
-
-
-
-
-# Proportion bar chart scRNA-seq:
-
-meta <- rna@meta.data
-
-df <- meta %>% group_by(RNA_snn_res.0.7) %>% count(Sample)
-colnames(df) <- c("Cluster","Sample","Cells")
-
-# Reorder cluster factor levels to group by cell type 
-levels(factor(rna$cell.type))
-df %>% 
-  dplyr::mutate(cell.type = factor(Cluster,levels <- c("2","3","0","7","11","15","16","19",
-                                                          "1","4","9","10","22",
-                                                          "14",
-                                                          "6","8","13","20","23",
-                                                          "5","18","21","12",
-                                                          "17"))) %>% 
-  ggplot(aes(fill=Sample, y=Cells, x= fct_rev(cell.type))) + 
-  geom_bar(position="fill", stat="identity")+
-  coord_flip()+theme_classic()+xlab("Clusters")+ylab("# of cells")+
-  scale_fill_manual(values = sampleColors)+ggsave("Cell_Type_Prop_RNA.pdf",width = 4,height = 8)
-
-
-
-
-
-
-# Patient proportion per subcluster in ATAC:
-meta <- as.data.frame(atac@cellColData)
-meta$predictedGroup_ArchR <- gsub("-.*", "", meta$predictedGroup_ArchR)
-
-df <- meta %>% group_by(predictedGroup_ArchR) %>% count(Sample)
-colnames(df) <- c("Cluster","Sample","Cells")
-
-# Reorder cluster factor levels to group by cell type 
-levels(factor(atac$predictedGroup_ArchR))
-df %>% 
-  dplyr::mutate(cell.type = factor(Cluster,levels =c("2","3","0","7","11","16",
-                                                     "1","4","9","10",
-                                                     "14",
-                                                     "6","8","13",
-                                                     "5","18","21","12",
-                                                     "17"))) %>% 
-  ggplot(aes(fill=Sample, y=Cells, x= fct_rev(cell.type))) + 
-  geom_bar(position="fill", stat="identity")+
-  coord_flip()+theme_classic()+xlab("Clusters")+ylab("# of cells")+
-  scale_fill_manual(values = sampleColors)+ggsave("Cell_Type_Prop_ATAC.pdf",width = 4,height = 8)
-
-
-
-
-
-proj <- readRDS("final_archr_proj_archrGS.rds")
+atac <- addReproduciblePeakSet(
+ArchRatac = atac,
+    groupBy = "predictedGroup_ArchR",
+    pathToMacs2 = pathToMacs2,force = T
+ )
+atac <- addPeakMatrix(atac,force = T)
 
 markersPeaks <- getMarkerFeatures(
-  ArchRProj = proj, 
-  useMatrix = "PeakMatrix", 
-  groupBy = "predictedGroup_ArchR",
+  ArchRatac = atac,
+  useMatrix = "PeakMatrix",
+  groupBy = "Cancer.Group",
+  useGroups = "Cancer",
+  bgdGroups = "Normal",
   bias = c("TSSEnrichment", "log10(nFrags)"),
   testMethod = "wilcoxon"
 )
+saveRDS(markersPeaks,"markersPeaks.rds")
+
+markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 0.25")
+cancer <- as.data.frame(markerList$`Cancer`)
+cancer$name <- paste0(cancer$seqnames,":",cancer$start,"-",cancer$end)
+
+# SE60 sig peaks
+idx <- grep("chr20:537",cancer$name)
+cancer.df <- cancer[idx,]
+saveRDS(cancer.df,"SigPeaksNearSE60.rds")
+cancer.gr <- makeGRangesFromDataFrame(cancer.df)
+
+p <- plotBrowserTrack(
+  ArchRProj = atac, 
+  groupBy = "predictedGroup_ArchR", 
+  region = GRanges("chr20:53730512-53757381"),
+  features = GRangesList(TrackA = makeGRangesFromDataFrame(encode),
+                         TrackB = cancer.gr),
+  loops = NULL,
+  upstream = 0,
+  downstream = 0
+)
+
+dev.off()
+pdf("browser_SE60-Extend-SigPeaks.pdf",width = 8,height = 14)
+grid::grid.draw(p)
+dev.off()
+
+# SE14 sig peaks
+idx <- grep("chr1:161",cancer$name)
+cancer.df <- cancer[idx,]
+saveRDS(cancer.df,"SigPeaksNearSE14.rds")
+cancer.gr <- makeGRangesFromDataFrame(cancer.df)
 
 
+p <- plotBrowserTrack(
+  ArchRProj = atac, 
+  groupBy = "predictedGroup_ArchR", 
+  region = GRanges("chr1:16162176-16195191"),
+  loops = NULL,
+  features = GRangesList(TrackA = makeGRangesFromDataFrame(encode),
+                         TrackB = cancer.gr),
+  upstream = 0,
+  downstream = 0
+)
 
-enh1 <- "chr20:53735447-53735947"
-enh2 <- "chr20:53738386-53738886"
-enh3 <- "chr20:53748112-53748612"
-se60 <- c(enh1,enh2,enh3)
-markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 1")# se60 markers
-markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.01 & Log2FC >= 0.5")# se14 markers
-epi.0<- as.data.frame(markerList$`0-Epithelial cell`)
-epi.0$name <- paste0(epi.0$seqnames,":",epi.0$start,"-",epi.0$end)
-epi.0 <- epi.0[epi.0$name %in% se60,]
+dev.off()
+pdf("browser_SE14-Extend-SigPeaks.pdf",width = 8,height = 14)
+grid::grid.draw(p)
+dev.off()
 
+# Test SE windows:
+# Combined SE windows
+# SE60: "chr20:53735512-53752381"
+# SE14: "chr1:16167176-16190191"
+se <- data.frame(chrom=c("chr20","chr1"),
+                 start=c("53735512","16167176"),
+                 end=c("53752381","16190191"))
+se.gr <-makeGRangesFromDataFrame(se)
+proj <- addFeatureMatrix(
+  input = proj,
+  features = se.gr,
+  matrixName = "FeatureMatrix",
+  ceiling = 10^9,
+  binarize = FALSE,
+  verbose = TRUE,
+  threads = getArchRThreads(),
+  parallelParam = NULL,
+  force = TRUE,
+  logFile = createLogFile("addFeatureMatrix")
+)
+markerSEs <- getMarkerFeatures(
+  ArchRProj = proj,
+  useMatrix = "FeatureMatrix",
+  groupBy = "Cancer.Group",
+  useGroups = "Cancer",
+  bgdGroups = "Normal",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  testMethod = "wilcoxon"
+)
+saveRDS(markerSEs,"markerSEs.rds")
+markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 0.25")
+cancer <- as.data.frame(markerList$`Cancer`)
+cancer$name <- paste0(cancer$seqnames,":",cancer$start,"-",cancer$end)
+print(cancer)
 
-epi.2 <- as.data.frame(markerList$`2-Epithelial cell`)
-epi.2$name <- paste0(epi.2$seqnames,":",epi.2$start,"-",epi.2$end)
-epi.2 <- epi.2[epi.2$name %in% se60,]
+writeLines(capture.output(sessionInfo()), "sessionInfo-HGSOC_samples_SE_analysis.txt")
 
-
-epi.3 <- as.data.frame(markerList$`3-Epithelial cell`)
-epi.3 <- as.data.frame(markerList$`3-Epithelial cell`)
-epi.3$name <- paste0(epi.3$seqnames,":",epi.3$start,"-",epi.3$end)
-epi.3 <- epi.3[epi.3$name %in% se60,]
-
-epi.7 <- as.data.frame(markerList$`7-Epithelial cell`)
-epi.11 <- as.data.frame(markerList$`11-Epithelial cell`)
-epi.16 <- as.data.frame(markerList$`16-Epithelial cell`)
