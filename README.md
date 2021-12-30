@@ -10,9 +10,10 @@
 1) Run HGSOC_ATAC.R to process the scATAC-seq data for both samples
 
 # Figure making
-1) Run HGSOC_samples_SE_analysis.R to generate the figure visuals
-2) Run Motif_Analysis_SE60_SE14.sh to perform the motif analysis
-3) Run FIMO_TF_rank.R to process the motif analysis results
+1) Run HGSOC_Differential_Genes_And_Peaks.R to generate the figure visuals
+2) Run 
+3) Run Motif_Analysis_SE60_SE14.sh to perform the motif analysis
+4) Run FIMO_TF_rank.R to process the motif analysis results
 
 # Quality control histograms
 Run HGSOC_QC_Samples.R to generate histrograms of log2(nCount_RNA) in scRNA-seq and log2(unique fragments) in scATAC-seq
