@@ -347,9 +347,9 @@ grid::grid.draw(p)
 dev.off()
 
 # Find differentially accessible (cancer-enriched peaks)
-atac$Cancer.Group <- ifelse(atac$predictedGroup_ArchR %in% c("0-Epithelial cell","2-Epithelial cell",
-                                                             "3-Epithelial cell","7-Epithelial cell",
-                                                             "11-Epithelial cell","16-Epithelial cell"),"Cancer","Normal")
+atac$Cancer.Group <- ifelse(atac$predictedGroup_ArchR %in% c("3_0-Epithelial cell","1_2-Epithelial cell",
+                                                             "2_3-Epithelial cell","4_7-Epithelial cell",
+                                                             "5_11-Epithelial cell","6_16-Epithelial cell"),"Cancer","Normal")
 set.seed(1234)
 atac <- addGroupCoverages(ArchRProj = atac, groupBy = "predictedGroup_ArchR",force=T)
 
@@ -420,40 +420,5 @@ pdf("browser_SE14-Extend-SigPeaks.pdf",width = 8,height = 14)
 grid::grid.draw(p)
 dev.off()
 
-# Test SE windows:
-# Combined SE windows
-# SE60: "chr20:53735512-53752381"
-# SE14: "chr1:16167176-16190191"
-se <- data.frame(chrom=c("chr20","chr1"),
-                 start=c("53735512","16167176"),
-                 end=c("53752381","16190191"))
-se.gr <-makeGRangesFromDataFrame(se)
-proj <- addFeatureMatrix(
-  input = proj,
-  features = se.gr,
-  matrixName = "FeatureMatrix",
-  ceiling = 10^9,
-  binarize = FALSE,
-  verbose = TRUE,
-  threads = getArchRThreads(),
-  parallelParam = NULL,
-  force = TRUE,
-  logFile = createLogFile("addFeatureMatrix")
-)
-markerSEs <- getMarkerFeatures(
-  ArchRProj = proj,
-  useMatrix = "FeatureMatrix",
-  groupBy = "Cancer.Group",
-  useGroups = "Cancer",
-  bgdGroups = "Normal",
-  bias = c("TSSEnrichment", "log10(nFrags)"),
-  testMethod = "wilcoxon"
-)
-saveRDS(markerSEs,"markerSEs.rds")
-markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 0.25")
-cancer <- as.data.frame(markerList$`Cancer`)
-cancer$name <- paste0(cancer$seqnames,":",cancer$start,"-",cancer$end)
-print(cancer)
-
-writeLines(capture.output(sessionInfo()), "sessionInfo-HGSOC_samples_SE_analysis.txt")
+writeLines(capture.output(sessionInfo()), "sessionInfo-HGSOC_Differential_Genes_And_Peaks.txt")
 
