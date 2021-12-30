@@ -11,7 +11,7 @@
 
 # Figure making
 1) Run HGSOC_Differential_Genes_And_Peaks.R to generate the figure visuals
-2) Run 
+2) Run HGSOC-Write_Enhancer_Coords.R to write cancer-enriched enhancer bed files for input into motif analysis
 3) Run Motif_Analysis_SE60_SE14.sh to perform the motif analysis
 4) Run FIMO_TF_rank.R to process the motif analysis results
 
